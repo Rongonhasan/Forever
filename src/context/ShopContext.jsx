@@ -1,19 +1,30 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useState, useEffect } from "react";
 import { products } from "../assets/assets";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
 export const ShopContext = createContext();
 
-const ShopContextProvider = (props) =>  {
-   
+const ShopContextProvider = (props) => {
     const currency = '$';
     const delivery_fee = 10;
     const [search, setSearch] = useState('');
     const [showSearch, setShowSearch] = useState(false);
     const [cartItems, setCartItems] = useState({});
-    const navigate = useNavigate()
-    
+    const [isLoggedIn, setIsLoggedIn] = useState(false); // User login state
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // Load cart data from local storage on component mount
+        const savedCartItems = JSON.parse(localStorage.getItem('cartItems')) || {};
+        setCartItems(savedCartItems);
+    }, []);
+
+    useEffect(() => {
+        // Save cart data to local storage whenever it changes
+        localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    }, [cartItems]);
+
     const addToCart = async (itemId, size) => {
         if (!size) {
             toast.error('Select Product Size');
@@ -33,8 +44,6 @@ const ShopContextProvider = (props) =>  {
             cartData[itemId][size] = 1;
         }
         setCartItems(cartData);
-
-        // Success toast notification
         toast.success('Product successfully added to cart!');
     };
 
@@ -42,12 +51,8 @@ const ShopContextProvider = (props) =>  {
         let totalCount = 0;
         for (const items in cartItems) {
             for (const item in cartItems[items]) {
-                try {
-                    if (cartItems[items][item] > 0) {
-                        totalCount += cartItems[items][item];
-                    }
-                } catch (error) {
-                    console.log(error);
+                if (cartItems[items][item] > 0) {
+                    totalCount += cartItems[items][item];
                 }
             }
         }
@@ -60,17 +65,13 @@ const ShopContextProvider = (props) =>  {
         setCartItems(cartData);
     };
 
-    const getCartAmount =  () => {
+    const getCartAmount = () => {
         let totalAmount = 0;
         for (const items in cartItems) {
             let itemInfo = products.find((product) => product._id === items);
             for (const item in cartItems[items]) {
-                try {
-                    if (cartItems[items][item] > 0) {
-                        totalAmount += itemInfo.price * cartItems[items][item];
-                    }
-                } catch (error) {
-                    console.log(error);
+                if (cartItems[items][item] > 0) {
+                    totalAmount += itemInfo.price * cartItems[items][item];
                 }
             }
         }
@@ -81,16 +82,18 @@ const ShopContextProvider = (props) =>  {
         products,
         currency,
         delivery_fee,
-        search, 
+        search,
         setSearch,
-        showSearch, 
+        showSearch,
         setShowSearch,
         cartItems,
         addToCart,
         getCartCount,
         updateQuantity,
         getCartAmount,
-        navigate
+        navigate,
+        isLoggedIn,         // Expose login state
+        setIsLoggedIn,      // Expose function to set login state
     };
 
     return (
